@@ -1,0 +1,15 @@
+register_write rgt 0 1000
+register_write rgt 1 1000
+register_write rgt 2 1000
+register_write rgt 3 1000
+table_add acquire_token read_token_register  => 
+table_add match_inport forward 1 => 2
+table_add match_inport forward 2 => 1
+table_add work_token_1 forward 10.0.0.2 => 2
+table_add work_token_2 forward 10.0.0.2 => 2
+table_add standby_token_1 forward 10.0.0.2 => 2
+table_add standby_token_2 forward 10.0.0.2 => 2
+table_add update_wt_1 write_wt_1 10.0.0.2 => 
+table_add update_wt_2 write_wt_2 10.0.0.2 => 
+table_add update_st_1 write_st_1 10.0.0.2 => 
+table_add update_st_2 write_st_2 10.0.0.2 => 
