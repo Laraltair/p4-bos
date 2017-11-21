@@ -1,0 +1,4 @@
+register_write rgt 0 6250
+register_write rgt 1 6250
+register_write rgt 2 12500
+register_write rgt 3 12500

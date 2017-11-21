@@ -27,10 +27,17 @@ header IPv4_h {
     //varbit<320>  options;
 }
 
+header UDP_h {
+    bit<16> srcPort;
+    bit<16> dstPort;
+    bit<16> udplength;
+    bit<16> checksum;
+}
 
 struct headers {
     Ethernet_h ethernet;
     IPv4_h ipv4;
+    UDP_h udp;
 }
 
 
@@ -63,8 +70,17 @@ parser bo_Parser(packet_in pkt, out headers hdr,
 
     state parse_ipv4 {
         pkt.extract(hdr.ipv4);
+        transition select(hdr.ipv4.protocol) {
+            0x11 : parse_udp;
+            default : accept;
+        }
+    }
+
+    state parse_udp {
+        pkt.extract(hdr.udp);
         transition accept;
     }
+
 }
 
 
@@ -117,6 +133,14 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
         actions = {forward;}
     }
 
+    table match_ip_udp {
+        key = {
+            hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
+        }
+        actions = {forward;}
+    }
+
     table acquire_token {
         actions = {read_token_register;}
     }
@@ -124,6 +148,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table update_wt_1 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {write_wt_1;}
     }
@@ -131,6 +156,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table update_wt_2 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {write_wt_2;}
     }
@@ -138,6 +164,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table update_st_1 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {write_st_1;}
     }
@@ -145,6 +172,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table update_st_2 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {write_st_2;}
     }
@@ -152,6 +180,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table work_token_1 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {forward;}
     }
@@ -159,6 +188,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table work_token_2 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {forward;}
     }
@@ -166,6 +196,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table standby_token_1 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {forward;}
     }
@@ -173,6 +204,7 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
     table standby_token_2 {
         key = {
             hdr.ipv4.dstAddr:exact;
+            hdr.udp.dstPort:exact;
         }
         actions = {forward;}
     }
@@ -183,6 +215,9 @@ control bo_Ingress(inout headers hdr, inout metadata meta, inout standard_metada
 
         acquire_token.apply();
         if (hdr.ethernet.ethernetType == 0x0800) {
+
+            match_ip_udp.apply();
+
             if (wt_1 > 0) {
                 work_token_1.apply();
                 update_wt_1.apply();
@@ -254,6 +289,7 @@ control bo_Deparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+        packet.emit(hdr.udp);
     }
 
 }
